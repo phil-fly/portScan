@@ -29,7 +29,7 @@ Usage of ./portScan:
     	Port to be scanned, supports three formats:
     	80
     	22,80 
-    	22:65535,21
+    	22-65535,21
   -t int
     	Maximum number of threads (default 10000)
 ```
@@ -41,7 +41,7 @@ Usage of ./portScan:
 ### 文件指定扫描ip列表：
 
 ```
-./portScan --file -ip ip.txt -p 1:65535 -t 1000
+./portScan --file -ip ip.txt -p 1-65535 -t 1000
 ```
 
 ### ip.txt 示例:
@@ -55,7 +55,7 @@ Usage of ./portScan:
 ### 不使用文件方式：
 
 ```
-./portScan -ip 192.168.0.21-100 -p 1:65535 -t 1000
+./portScan -ip 192.168.0.21-100 -p 1-65535 -t 1000
 ```
 
 

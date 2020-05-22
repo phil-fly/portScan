@@ -53,8 +53,8 @@ func PortHandle(portStr string) *PortSet{
 	ports := strings.Split(portStr, ",")
 
 	for _,v:= range ports {
-		if strings.Contains(v, ":") {
-			portslist := strings.Split(v, ":")
+		if strings.Contains(v, "-") {
+			portslist := strings.Split(v, "-")
 			addPort(portslist[0],portslist[1])
 		}else{
 			PortMap.Set(v,1)

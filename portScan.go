@@ -46,7 +46,7 @@ $$ |
 	flag.BoolVar(&fullMode, "full", false, "Scan all TCP and UDP ports in full scan mode. The default is off. By default, only common TCP ports are scanned.")
 	flag.BoolVar(&fileMode, "file", false, "Use file mode to specify ip address .")
 	flag.IntVar(&maxThread, "t", 10000, "Maximum number of threads")
-	flag.StringVar(&specifiedPort, "p", "", "Port to be scanned, supports three formats:\n22,80 \n22:65535")
+	flag.StringVar(&specifiedPort, "p", "", "Port to be scanned, supports three formats:\n22,80 \n22-65535")
 	flag.Parse()
 
 	if ip == "" {
@@ -57,7 +57,7 @@ $$ |
 	ips:=ipHandle(fileMode,ip)
 	//log.Println(ips)
 	startTime := time.Now()
-	if len(ips) > 0 {
+	if len(specifiedPort) > 0 {
 		if fullMode {
 			fmt.Println("Multi-host mode does not support full scan")
 			return
@@ -67,13 +67,13 @@ $$ |
 		Results := work.Task(ips,Ports,maxThread)
 		for openIp,openPortlist := range Results.Results {
 			for _,openPort := range openPortlist {
-				fmt.Printf("%s:%s\topend\n",openIp,openPort)
+				fmt.Printf("%s:%s\topen\n",openIp,openPort)
 			}
 		}
 	} else {
 		var commonPorts string
 		if fullMode {
-			commonPorts = "1:65535"
+			commonPorts = "1-65535"
 		} else {
 			commonPorts = "21,22,23,25,53,80,110,135,137,138,139,443,1433,1434,1521,3306,3389,5000,5432,5632,6379,8000,8080,8081,8443,9090,10051,11211,27017"
 
@@ -82,7 +82,7 @@ $$ |
 		Results := work.Task(ips,Ports,maxThread)
 		for openIp,openPortlist := range Results.Results {
 			for _,openPort := range openPortlist {
-				fmt.Printf("%s:%s\topend\n",openIp,openPort)
+				fmt.Printf("%s:%s\topen\n",openIp,openPort)
 			}
 		}
 	}
