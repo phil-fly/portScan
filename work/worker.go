@@ -3,12 +3,12 @@ package work
 import (
 	"sync"
 	"portScan/utils/ping"
+	"fmt"
 )
 
 type Workdist struct {
 	Host	string
 	Port    string
-	Results *ResultsSet
 }
 
 const (
@@ -16,10 +16,8 @@ const (
 )
 var wg sync.WaitGroup
 
-func Task(ips []string,PortMap *PortSet,tasknum int) *ResultsSet {
+func Task(ips []string,PortMap *PortSet,tasknum int) {
 	tasks := make(chan Workdist,taskload)
-
-	Results := InitResults()
 	wg.Add(tasknum)
 	//创建chan消费者worker
 	for gr:=1;gr<=tasknum;gr++ {
@@ -33,7 +31,6 @@ func Task(ips []string,PortMap *PortSet,tasknum int) *ResultsSet {
 				task := Workdist{
 					Host:host,
 					Port:Port,
-					Results:Results,
 				}
 				tasks <- task
 			}
@@ -41,7 +38,7 @@ func Task(ips []string,PortMap *PortSet,tasknum int) *ResultsSet {
 	}
 	close(tasks)
 	wg.Wait()
-	return Results
+	return
 }
 
 func worker(tasks chan Workdist){
@@ -51,45 +48,10 @@ func worker(tasks chan Workdist){
 		if !ok {
 			return
 		}
+
 		if IsOpenTCP(task.Host,task.Port) {
-			task.Results.Set(task.Host,task.Port)
-			//log.Print("Host -> %s  Port -> %s  opend",task.Host,task.Port)
+			fmt.Printf("[TCP]\t%s:%s\topen\n",task.Host,task.Port)
 		}
+
 	}
 }
-
-
-type ResultsSet struct {
-	Results  map[string][]string
-	ResultsMutex  *sync.RWMutex
-}
-
-func ResultsSetNew() *ResultsSet {
-	return &ResultsSet{
-		Results:make(map[string][]string),
-		ResultsMutex:new(sync.RWMutex),
-	}
-}
-
-func (this *ResultsSet)Set(host string,value interface{}) {
-	this.ResultsMutex.Lock()
-	defer this.ResultsMutex.Unlock()
-	switch value.(type) {
-	case string:
-		this.Results[host] = append(this.Results[host], value.(string))
-	case []string:
-		this.Results[host] = append(this.Results[host], value.([]string)...)
-	}
-}
-
-func (this *ResultsSet)Get(key string) []string{
-	this.ResultsMutex.RLock()
-	defer this.ResultsMutex.RUnlock()
-	return  this.Results[key]
-}
-
-func InitResults() *ResultsSet {
-	return ResultsSetNew()
-}
-
-var  ResultsMap *ResultsSet

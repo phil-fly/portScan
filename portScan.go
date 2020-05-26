@@ -64,12 +64,7 @@ $$ |
 		}
 		Ports :=work.PortHandle(specifiedPort)
 		//log.Println(Ports)
-		Results := work.Task(ips,Ports,maxThread)
-		for openIp,openPortlist := range Results.Results {
-			for _,openPort := range openPortlist {
-				fmt.Printf("%s:%s\topen\n",openIp,openPort)
-			}
-		}
+		work.Task(ips,Ports,maxThread)
 	} else {
 		var commonPorts string
 		if fullMode {
@@ -79,12 +74,7 @@ $$ |
 
 		}
 		Ports :=work.PortHandle(commonPorts)
-		Results := work.Task(ips,Ports,maxThread)
-		for openIp,openPortlist := range Results.Results {
-			for _,openPort := range openPortlist {
-				fmt.Printf("%s:%s\topen\n",openIp,openPort)
-			}
-		}
+		work.Task(ips,Ports,maxThread)
 	}
 	takes := time.Since(startTime).Truncate(time.Millisecond)
 	fmt.Printf("Scanning completed, taking %s.\n\n", takes)
