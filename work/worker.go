@@ -1,57 +1,86 @@
 package work
 
 import (
-	"sync"
-	"portScan/utils/ping"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
+	"portScan/utils/ipParse"
+	"strings"
+	"time"
 )
 
-type Workdist struct {
-	Host	string
-	Port    string
+func scan(s ServerAndPort,iplist []string,ResultsOutput string,Tasknum int) error {
+	switch s.Server {
+	case TCP:
+		tcpscan := &TcpScan{}
+		tcpscan.SetIpList(iplist)
+		tcpscan.SetPortMap(String2PortMap(s.ServerPort))
+		tcpscan.SetResultsOutput(ResultsOutput)
+		tcpscan.SetTasknum(Tasknum)
+		err := tcpscan.Validate()
+		if err != nil {
+			return err
+		}
+		tcpscan.RunScan()
+	case HTTPS:
+		httpsScan := &WebScan{}
+		httpsScan.SetIpList(iplist)
+		httpsScan.SetPortMap(String2PortMap(s.ServerPort))
+		httpsScan.SetResultsOutput(ResultsOutput)
+		httpsScan.SetTasknum(Tasknum)
+		httpsScan.SetTimeOut(Tasknum)
+		httpsScan.IsHttps = true
+		err := httpsScan.Validate()
+		if err != nil {
+			return err
+		}
+		httpsScan.RunScan()
+	}
+	return nil
 }
 
-const (
-	taskload		    = 60000
-)
-var wg sync.WaitGroup
-
-func Task(ips []string,PortMap *PortSet,tasknum int) {
-	tasks := make(chan Workdist,taskload)
-	wg.Add(tasknum)
-	//创建chan消费者worker
-	for gr:=1;gr<=tasknum;gr++ {
-		go worker(tasks)
+func ScanEngine(ss ScanServerAndPort) error {
+	//log.Println(ips)
+	startTime := time.Now()
+	err := ss.Validate()
+	if err != nil {
+		return err
 	}
+	iplist := file2Iplist(true,ss.TargetFile)
+	for _,v := range ss.ServerAndPorts{
+		scan(v,iplist,ss.ResultsFile,ss.Tasknum)
+	}
+	takes := time.Since(startTime).Truncate(time.Millisecond)
+	fmt.Printf("Scanning completed, taking %s.\n\n", takes)
+	return nil
+}
 
-	//创建chan生产者
-	for _,host := range ips {
-		if ping.Ping(host) {
-			for Port,_ := range PortMap.Port {
-				task := Workdist{
-					Host:host,
-					Port:Port,
+func file2Iplist(fileMode bool,ipStr string) []string {
+	var IPset []string
+	var err error
+	if fileMode {
+		request,err := ioutil.ReadFile(ipStr)
+		if err !=nil {
+			log.Fatal(err)
+			os.Exit(-1)
+		}
+		ipStr := strings.Replace(string(request), "\r", "", -1 )
+		ports := strings.Split(ipStr, "\n")
+		for _,v := range ports {
+			if v != ""{
+				ips, err := ipParse.Parse(v)
+				if err != nil {
+					log.Fatal(err)
 				}
-				tasks <- task
+				IPset = append(IPset, ips...)
 			}
 		}
-	}
-	close(tasks)
-	wg.Wait()
-	return
-}
-
-func worker(tasks chan Workdist){
-	defer wg.Done()
-	for {
-		task,ok := <- tasks
-		if !ok {
-			return
+	}else{
+		IPset, err = ipParse.Parse(ipStr)
+		if err != nil {
+			log.Fatal(err)
 		}
-
-		if IsOpenTCP(task.Host,task.Port) {
-			fmt.Printf("[TCP]\t%s:%s\topen\n",task.Host,task.Port)
-		}
-
 	}
+	return IPset
 }
