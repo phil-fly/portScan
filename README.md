@@ -1,50 +1,43 @@
-```
-[root@localhost portScan]# ./portScan -h
-
-
-                               $$\      $$$$$$\                               
-                               $$ |    $$  __$$\                              
- $$$$$$\   $$$$$$\   $$$$$$\ $$$$$$\   $$ /  \__| $$$$$$$\ $$$$$$\  $$$$$$$\  
-$$  __$$\ $$  __$$\ $$  __$$\\_$$  _|  \$$$$$$\  $$  _____|\____$$\ $$  __$$\ 
-$$ /  $$ |$$ /  $$ |$$ |  \__| $$ |     \____$$\ $$ /      $$$$$$$ |$$ |  $$ |
-$$ |  $$ |$$ |  $$ |$$ |       $$ |$$\ $$\   $$ |$$ |     $$  __$$ |$$ |  $$ |
-$$$$$$$  |\$$$$$$  |$$ |       \$$$$  |\$$$$$$  |\$$$$$$$\\$$$$$$$ |$$ |  $$ |
-$$  ____/  \______/ \__|        \____/  \______/  \_______|\_______|\__|  \__|
-$$ |                                                                          
-$$ |                                                                          
-\__|                                                                          
-
-
-Usage of ./portScan:
-  -file
-    	Use file mode to specify ip address .
-  -full
-    	Scan all TCP and UDP ports in full scan mode. The default is off. By default, only common TCP ports are scanned.
-  -ip string
-    	IP to be scanned, supports three formats:
-    	192.168.0.1 
-    	192.168.0.1-8 
-    	192.168.0.0/24
-  -p string
-    	Port to be scanned, supports three formats:
-    	80
-    	22,80 
-    	22-65535,21
-  -t int
-    	Maximum number of threads (default 10000)
-```
-
-
-
+## 开源端口扫描以及web(http,https)title 收集工具
 ## 使用说明:
 
-### 文件指定扫描ip列表：
-
+### 扫描配置(默认)：
+#### 程序直接运行会在本地生成配置文件，根据需要修改。
 ```
-./portScan --file -ip ip.txt -p 1-65535 -t 1000
+{
+  "TargetFile":"list.txt",
+  "ResultsFile":"results.txt",
+  "Tasknum":1000,
+  "ServerAndPorts":[
+    {
+      "Enable":true,
+      "ServerType":"TCP",
+      "ServerPort":"1-65535",
+      "TimeOut":1
+    },
+    {
+      "Enable":false,
+      "ServerType":"TCP",
+      "ServerPort":"21,22,23,25,53,80,110,135,137,138,139,443,1433,1434,1521,3306,3389,5000,5432,5632,6379,8000,8080,8081,8443,9090,10051,11211,27017",
+      "TimeOut":1
+    },
+    {
+      "Enable":false,
+      "ServerType":"HTTP",
+      "ServerPort":"80,8080",
+      "TimeOut":10
+    },
+    {
+      "Enable":true,
+      "ServerType":"HTTPS",
+      "ServerPort":"443,8443",
+      "TimeOut":10
+    }
+  ]
+}
 ```
 
-### ip.txt 示例:
+### list.txt 示例:
 
 ```
 [root@localhost portScan]# cat ip.txt 
@@ -52,24 +45,42 @@ Usage of ./portScan:
 192.168.0.0/24
 ```
 
-### 不使用文件方式：
-
-```
-./portScan -ip 192.168.0.21-100 -p 1-65535 -t 1000
-```
-
 
 
 ## 输出：
+###端口开放信息
 
+格式:
 ```
-192.168.0.92:111	opend
-192.168.0.92:22	opend
-192.168.0.92:3306	opend
-192.168.0.92:7001	opend
-192.168.0.97:80	opend
-192.168.0.97:22	opend
-192.168.0.97:8080	opend
+[ip]:[port]\t[opend]\n
+```
+结果示例:
+```
+192.xx.xx.92:111	opend
+192.xx.xx.92:22	opend
+192.xx.xx.92:3306	opend
+192.xx.xx.92:7001	opend
+192.xx.xx.97:80	opend
+192.xx.xx.97:22	opend
+192.xx.xx.97:8080	opend
+```
+
+### web titel扫描结果 :
+
+格式:
+```
+[url]\t[statusCode]\t[title]\n
+```
+结果示例:
+```cassandraql
+https://10.xx.xx.10:443/	200	xxx系统
+https://10.xx.xx.95:443/	200	xxx
+https://10.xx.xx.9:443/	200	xxxx系统
+https://10.xx.xx.6:443/	200	
+https://10.xx.xx.12:443/	200	
+https://10.xx.xx.91:443/	200	
+https://10.xx.xx.7:443/	200	xxxx系统
+
 ```
 
 ## 免责声明

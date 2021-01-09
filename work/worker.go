@@ -11,8 +11,11 @@ import (
 )
 
 func scan(s ServerAndPort,iplist []string,ResultsOutput string,Tasknum int) error {
+	if s.Enable == false {
+		return nil
+	}
 	switch s.Server {
-	case TCP:
+	case TCP :
 		tcpscan := &TcpScan{}
 		tcpscan.SetIpList(iplist)
 		tcpscan.SetPortMap(String2PortMap(s.ServerPort))
@@ -23,6 +26,7 @@ func scan(s ServerAndPort,iplist []string,ResultsOutput string,Tasknum int) erro
 			return err
 		}
 		tcpscan.RunScan()
+		return nil
 	case HTTPS:
 		httpsScan := &WebScan{}
 		httpsScan.SetIpList(iplist)
@@ -36,6 +40,21 @@ func scan(s ServerAndPort,iplist []string,ResultsOutput string,Tasknum int) erro
 			return err
 		}
 		httpsScan.RunScan()
+		return nil
+	case HTTP:
+		httpsScan := &WebScan{}
+		httpsScan.SetIpList(iplist)
+		httpsScan.SetPortMap(String2PortMap(s.ServerPort))
+		httpsScan.SetResultsOutput(ResultsOutput)
+		httpsScan.SetTasknum(Tasknum)
+		httpsScan.SetTimeOut(Tasknum)
+		httpsScan.IsHttps = false
+		err := httpsScan.Validate()
+		if err != nil {
+			return err
+		}
+		httpsScan.RunScan()
+		return nil
 	}
 	return nil
 }
@@ -48,6 +67,7 @@ func ScanEngine(ss ScanServerAndPort) error {
 		return err
 	}
 	iplist := file2Iplist(true,ss.TargetFile)
+
 	for _,v := range ss.ServerAndPorts{
 		scan(v,iplist,ss.ResultsFile,ss.Tasknum)
 	}
@@ -71,7 +91,7 @@ func file2Iplist(fileMode bool,ipStr string) []string {
 			if v != ""{
 				ips, err := ipParse.Parse(v)
 				if err != nil {
-					log.Fatal(err)
+					IPset = append(IPset, v)
 				}
 				IPset = append(IPset, ips...)
 			}

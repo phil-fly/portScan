@@ -1,7 +1,6 @@
 package work
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"log"
@@ -68,9 +67,9 @@ func (t *TcpScan)RunScan() error {
 	}
 
 	//结果写入文件
-	t.resultChan = make(chan string)
+	t.resultChan = make(chan string,1000)
 	defer close(t.resultChan)
-	t.writeResultToFile()
+	go t.writeResultToFile()
 
 
 	tasks := make(chan TcpScanTaskInfo,taskload)
@@ -83,7 +82,7 @@ func (t *TcpScan)RunScan() error {
 	//创建chan生产者
 	for _,host := range t.ipList {
 		if ping.Ping(host) {
-			for Port,_ := range PortMap.Port {
+			for Port,_ := range t.portMap.Port {
 				task := TcpScanTaskInfo{
 					Host:host,
 					Port:Port,
@@ -107,6 +106,7 @@ func (t *TcpScan)worker(tasks chan TcpScanTaskInfo){
 
 		if t.IsOpenTCP(task.Host,task.Port) {
 			result := fmt.Sprintf("[TCP]\t%s:%s\topen\n",task.Host,task.Port)
+			fmt.Print(result)
 			t.resultChan <- result
 		}
 	}
@@ -116,23 +116,19 @@ func (t *TcpScan)worker(tasks chan TcpScanTaskInfo){
 func (t *TcpScan)writeResultToFile() {
 	var f *os.File
 	var err error
-	f, err = os.OpenFile(t.resultsOutput, os.O_WRONLY, 0666)
+	f, err = os.OpenFile(t.resultsOutput, os.O_RDWR|os.O_APPEND, 0666)
 	defer f.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
-	w := bufio.NewWriter(f)
-	for {
-		select{
-		case res,ok:=<- t.resultChan:
-			if ok{
-				_, _ = w.WriteString(res)
-			}
-		default:
-			w.Flush()
+	for  {
+		res,ok:=<- t.resultChan
+		if !ok {
 			return
 		}
+		_, _ = f.WriteString(res)
 	}
+
 }
 
 

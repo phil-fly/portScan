@@ -46,23 +46,21 @@ func InitPort() *PortSet {
 	return New()
 }
 
-var  PortMap *PortSet
-
-func PortHandle(portStr string) *PortSet{
-	PortMap = InitPort()
+func String2PortMap(portStr string) *PortSet{
+	PortMap := InitPort()
 	ports := strings.Split(portStr, ",")
 
 	for _,v:= range ports {
 		if strings.Contains(v, "-") {
 			portslist := strings.Split(v, "-")
-			addPort(portslist[0],portslist[1])
+			PortMap.addPort(portslist[0],portslist[1])
 		}else{
 			PortMap.Set(v,1)
 		}
 	}
 	return PortMap
 }
-func addPort(portStart,portEnd string){
+func (this *PortSet)addPort(portStart,portEnd string){
 	portStartInt, err := strconv.Atoi(portStart)
 	if err != nil || portStartInt < 0 || portStartInt > 65535 {
 		log.Fatal("Invalid Port :",portStart)
@@ -76,11 +74,11 @@ func addPort(portStart,portEnd string){
 	}
 	if portStartInt > portEndInt {
 		for i := portEndInt;i <=portStartInt ;i++  {
-			PortMap.Set(i,1)
+			this.Set(i,1)
 		}
 	}else{
 		for i := portStartInt;i <=portEndInt ;i++  {
-			PortMap.Set(i,1)
+			this.Set(i,1)
 		}
 	}
 

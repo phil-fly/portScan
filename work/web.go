@@ -1,14 +1,13 @@
 package work
 
 import (
-	"bufio"
 	"crypto/tls"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"portScan/utils/ping"
+	//"portScan/utils/ping"
 	"sync"
 	"time"
 
@@ -84,9 +83,9 @@ func (t *WebScan)RunScan() error {
 	}
 
 	//结果写入文件
-	t.resultChan = make(chan string)
+	t.resultChan = make(chan string,1000)
 	defer close(t.resultChan)
-	t.writeResultToFile()
+	go t.writeResultToFile()
 
 
 	tasks := make(chan WebScanTaskInfo,taskload)
@@ -97,15 +96,13 @@ func (t *WebScan)RunScan() error {
 	}
 
 	for _,host := range t.ipList {
-		if ping.Ping(host) {
-			for Port,_ := range PortMap.Port {
-				task := WebScanTaskInfo{
-					Host:host,
-					Port:Port,
-					IsHttps: t.IsHttps,
-				}
-				tasks <- task
+		for Port,_ := range t.portMap.Port {
+			task := WebScanTaskInfo{
+				Host:host,
+				Port:Port,
+				IsHttps: t.IsHttps,
 			}
+			tasks <- task
 		}
 	}
 	close(tasks)
@@ -122,9 +119,9 @@ func (t *WebScan)worker(tasks chan WebScanTaskInfo){
 		}
 		var url string
 		if task.IsHttps {
-			url = fmt.Sprintf("https://%s:%s",task.Host,task.Port)
+			url = fmt.Sprintf("https://%s:%s/",task.Host,task.Port)
 		}else{
-			url = fmt.Sprintf("http://%s:%s",task.Host,task.Port)
+			url = fmt.Sprintf("http://%s:%s/",task.Host,task.Port)
 		}
 		t.getTitle(url)
 	}
@@ -134,28 +131,29 @@ func (t *WebScan)worker(tasks chan WebScanTaskInfo){
 func (t *WebScan)writeResultToFile() {
 	var f *os.File
 	var err error
-	f, err = os.OpenFile(t.resultsOutput, os.O_WRONLY, 0666)
+	fmt.Println(t.resultsOutput)
+	f, err = os.OpenFile(t.resultsOutput, os.O_RDWR|os.O_APPEND, 0666)
 	defer f.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
-	w := bufio.NewWriter(f)
-	for {
-		select{
-		case res,ok:=<- t.resultChan:
-			if ok{
-				_, _ = w.WriteString(res)
-			}
-		default:
-			w.Flush()
+	for  {
+		res,ok:=<- t.resultChan
+		if !ok {
+			fmt.Println("resultChan !ok")
 			return
 		}
+		fmt.Println("====",res)
+		_, err = f.WriteString(res)
+		if err !=nil{
+			fmt.Println(err)
+		}
 	}
+
 }
 
-
 func (t *WebScan)getTitle(url string) {
-	defer t.scanWg.Done()
+
 	timeout := time.Duration(t.timeOut) * time.Second
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -173,27 +171,38 @@ func (t *WebScan)getTitle(url string) {
 	request.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
 	response, err := client.Do(request)
 	if err != nil {
+	//	fmt.Println(err)
 		return
+	}
+
+	lv := response.Header.Get("Location")
+	if lv != ""  {
+		fmt.Println(lv)
 	}
 
 	defer response.Body.Close()
 	statusCode := response.StatusCode
+	//fmt.Println(url,statusCode)
 	doc, err := goquery.NewDocumentFromReader(response.Body)
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
+
 	title := doc.Find("title").Text()
+	fmt.Println(url,statusCode,title)
+
 	var result string
 	// 判断title是否为gbk编码
 	detector := chardet.NewTextDetector()
 	charset, _ := detector.DetectBest([]byte(title))
 
 	if charset.Charset=="UTF-8" {
-		result = fmt.Sprintf("%s\t%d\t%s", url, statusCode, title)
+		result = fmt.Sprintf("%s\t%d\t%s\n", url, statusCode, title)
 
 	} else {
 		gbkTitle, _ := simplifiedchinese.GBK.NewDecoder().Bytes([]byte(title))
-		result = fmt.Sprintf("%s\t%d\t%s", url, statusCode, string(gbkTitle))
+		result = fmt.Sprintf("%s\t%d\t%s\n", url, statusCode, string(gbkTitle))
 	}
 	// if isGBK([]byte(title)) {
 	//      gbkTitle, _ := simplifiedchinese.GBK.NewDecoder().Bytes([]byte(title))
@@ -201,5 +210,6 @@ func (t *WebScan)getTitle(url string) {
 	// } else {
 	//      output = fmt.Sprintf("%s\t%d\t%s", url, statusCode, title)
 	// }
+	//fmt.Println(result)
 	t.resultChan <- result
 }
