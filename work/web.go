@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+
 	//"portScan/utils/ping"
 	"sync"
 	"time"
@@ -84,19 +85,19 @@ func (t *WebScan)RunScan() error {
 
 	//结果写入文件
 	t.resultChan = make(chan string,1000)
-	defer close(t.resultChan)
 	go t.writeResultToFile()
 
 
 	tasks := make(chan WebScanTaskInfo,taskload)
-
+	t.scanWg.Add(t.tasknum)
 	for gr:=1;gr<= t.tasknum;gr++ {
-		t.scanWg.Add(1)
 		go t.worker(tasks)
 	}
 
 	for _,host := range t.ipList {
+
 		for Port,_ := range t.portMap.Port {
+			//fmt.Println("扫描地址:",host,Port)
 			task := WebScanTaskInfo{
 				Host:host,
 				Port:Port,
@@ -107,6 +108,7 @@ func (t *WebScan)RunScan() error {
 	}
 	close(tasks)
 	t.scanWg.Wait()
+	close(t.resultChan)
 	return nil
 }
 
@@ -131,7 +133,7 @@ func (t *WebScan)worker(tasks chan WebScanTaskInfo){
 func (t *WebScan)writeResultToFile() {
 	var f *os.File
 	var err error
-	fmt.Println(t.resultsOutput)
+
 	f, err = os.OpenFile(t.resultsOutput, os.O_RDWR|os.O_APPEND, 0666)
 	defer f.Close()
 	if err != nil {
@@ -143,7 +145,7 @@ func (t *WebScan)writeResultToFile() {
 			fmt.Println("resultChan !ok")
 			return
 		}
-		fmt.Println("====",res)
+
 		_, err = f.WriteString(res)
 		if err !=nil{
 			fmt.Println(err)
@@ -153,7 +155,7 @@ func (t *WebScan)writeResultToFile() {
 }
 
 func (t *WebScan)getTitle(url string) {
-
+	//fmt.Println("getTitle:" ,url)
 	timeout := time.Duration(t.timeOut) * time.Second
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -190,7 +192,6 @@ func (t *WebScan)getTitle(url string) {
 	}
 
 	title := doc.Find("title").Text()
-	fmt.Println(url,statusCode,title)
 
 	var result string
 	// 判断title是否为gbk编码

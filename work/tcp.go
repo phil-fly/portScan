@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"portScan/utils/ping"
 	"sync"
 	"time"
 )
@@ -23,7 +22,6 @@ type TcpScan struct {
 type TcpScanTaskInfo struct {
 	Host	string
 	Port    string
-
 }
 
 func (t *TcpScan)SetIpList(ips []string){
@@ -68,31 +66,28 @@ func (t *TcpScan)RunScan() error {
 
 	//结果写入文件
 	t.resultChan = make(chan string,1000)
-	defer close(t.resultChan)
 	go t.writeResultToFile()
 
 
 	tasks := make(chan TcpScanTaskInfo,taskload)
 
+	t.wg.Add(t.tasknum)
 	for gr:=1;gr<= t.tasknum;gr++ {
-		t.wg.Add(1)
 		go t.worker(tasks)
 	}
-
 	//创建chan生产者
 	for _,host := range t.ipList {
-		if ping.Ping(host) {
-			for Port,_ := range t.portMap.Port {
-				task := TcpScanTaskInfo{
-					Host:host,
-					Port:Port,
-				}
-				tasks <- task
+		for Port,_ := range t.portMap.Port {
+			task := TcpScanTaskInfo{
+				Host:host,
+				Port:Port,
 			}
+			tasks <- task
 		}
 	}
 	close(tasks)
 	t.wg.Wait()
+	close(t.resultChan)
 	return nil
 }
 
@@ -106,7 +101,6 @@ func (t *TcpScan)worker(tasks chan TcpScanTaskInfo){
 
 		if t.IsOpenTCP(task.Host,task.Port) {
 			result := fmt.Sprintf("[TCP]\t%s:%s\topen\n",task.Host,task.Port)
-			fmt.Print(result)
 			t.resultChan <- result
 		}
 	}

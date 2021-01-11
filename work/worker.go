@@ -68,8 +68,16 @@ func ScanEngine(ss ScanServerAndPort) error {
 	}
 	iplist := file2Iplist(true,ss.TargetFile)
 
+	ipscan := NewIpScan()
+	ipscan.SetIpList(iplist)
+	ipscan.tasknum = ss.Tasknum
+
+	ipscan.RunScan()
+	fmt.Println("总地址个数:",len(ipscan.ipList))
+	fmt.Println("存活主机地址个数:",len(ipscan.aliveIpList))
+
 	for _,v := range ss.ServerAndPorts{
-		scan(v,iplist,ss.ResultsFile,ss.Tasknum)
+		scan(v,ipscan.aliveIpList,ss.ResultsFile,ss.Tasknum)
 	}
 	takes := time.Since(startTime).Truncate(time.Millisecond)
 	fmt.Printf("Scanning completed, taking %s.\n\n", takes)
