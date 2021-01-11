@@ -136,6 +136,14 @@ func (t *ScanServerAndPort)Default(file string) {
 	}
 	t.ServerAndPorts = append(t.ServerAndPorts, httpsSan)
 
+	nbnsSan := ServerAndPort{
+		Enable: true,
+		Server: NBNS,
+		ServerPort: "137",
+		TimeOut: 10,
+	}
+	t.ServerAndPorts = append(t.ServerAndPorts, nbnsSan)
+
 	b, err := json.Marshal(t)
 	if err != nil {
 		fmt.Println("JSON ERR:", err)

@@ -33,7 +33,7 @@ func scan(s ServerAndPort,iplist []string,ResultsOutput string,Tasknum int) erro
 		httpsScan.SetPortMap(String2PortMap(s.ServerPort))
 		httpsScan.SetResultsOutput(ResultsOutput)
 		httpsScan.SetTasknum(Tasknum)
-		httpsScan.SetTimeOut(Tasknum)
+		httpsScan.SetTimeOut(s.TimeOut)
 		httpsScan.IsHttps = true
 		err := httpsScan.Validate()
 		if err != nil {
@@ -47,13 +47,25 @@ func scan(s ServerAndPort,iplist []string,ResultsOutput string,Tasknum int) erro
 		httpsScan.SetPortMap(String2PortMap(s.ServerPort))
 		httpsScan.SetResultsOutput(ResultsOutput)
 		httpsScan.SetTasknum(Tasknum)
-		httpsScan.SetTimeOut(Tasknum)
+		httpsScan.SetTimeOut(s.TimeOut)
 		httpsScan.IsHttps = false
 		err := httpsScan.Validate()
 		if err != nil {
 			return err
 		}
 		httpsScan.RunScan()
+		return nil
+	case NBNS:
+		nbnsScan := &NbnsScan{}
+		nbnsScan.SetIpList(iplist)
+		nbnsScan.SetResultsOutput(ResultsOutput)
+		nbnsScan.SetTasknum(Tasknum)
+		nbnsScan.SetTimeOut(s.TimeOut)
+		err := nbnsScan.Validate()
+		if err != nil {
+			return err
+		}
+		nbnsScan.RunScan()
 		return nil
 	}
 	return nil
@@ -70,9 +82,11 @@ func ScanEngine(ss ScanServerAndPort) error {
 
 	ipscan := NewIpScan()
 	ipscan.SetIpList(iplist)
-	ipscan.tasknum = ss.Tasknum
+	ipscan.tasknum = 10000
 
 	ipscan.RunScan()
+	take1 := time.Since(startTime).Truncate(time.Millisecond)
+	fmt.Printf("ipscan completed, taking %s.\n\n", take1)
 	fmt.Println("总地址个数:",len(ipscan.ipList))
 	fmt.Println("存活主机地址个数:",len(ipscan.aliveIpList))
 

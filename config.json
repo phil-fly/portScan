@@ -1,7 +1,7 @@
 {
   "TargetFile":"list.txt",
   "ResultsFile":"results.txt",
-  "Tasknum":10000,
+  "Tasknum":1000,
   "ServerAndPorts":[
     {
       "Enable":false,
@@ -16,21 +16,21 @@
       "TimeOut":1
     },
     {
-      "Enable":false,
+      "Enable":true,
       "ServerType":"HTTP",
       "ServerPort":"80,8080",
-      "TimeOut":10
-    },
-    {
-      "Enable":false,
-      "ServerType":"HTTPS",
-      "ServerPort":"",
       "TimeOut":10
     },
     {
       "Enable":true,
       "ServerType":"HTTPS",
       "ServerPort":"443,8443",
+      "TimeOut":10
+    },
+    {
+      "Enable":true,
+      "ServerType":"NBNS",
+      "ServerPort":"137",
       "TimeOut":10
     }
   ]
